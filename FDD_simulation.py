@@ -876,26 +876,27 @@ def FFDA_run_all(data_file, metadata_file, year, freq='30min'):
     fault_distribution_fig = Plot_fault_distribution(merged)
     
     ### Save figures
-    folder = 'Figures/'
-    path = folder + str(meta['ID'].values[0]) + '/'
-    if not os.path.exists(path):
-            os.mkdir(path)
-    f = path + str(meta['ID'].values[0])+'_inverter'+str(meta['Inverter'].values[0])+'_string'\
-                +str(meta['String'].values[0]) +'_year'+str(meta['Year'].values[0])
-    f_cs = f + '_clear_sky_simulation.png'
-    f_fault = f + '_fault_heatmap.png'
-    f_current = f + '_current_loss_heatmap.png'
-    f_power = f + '_power_loss_heatmap.png'
-    f_dist = f + '_fault_distribution.png'
+    #folder = 'Figures/'
+    #path = folder + str(meta['ID'].values[0]) + '/'
+    #if not os.path.exists(path):
+    #        os.mkdir(path)
+    #f = path + str(meta['ID'].values[0])+'_inverter'+str(meta['Inverter'].values[0])+'_string'\
+    #            +str(meta['String'].values[0]) +'_year'+str(meta['Year'].values[0])
+    #f_cs = f + '_clear_sky_simulation.png'
+    #f_fault = f + '_fault_heatmap.png'
+    #f_current = f + '_current_loss_heatmap.png'
+    #f_power = f + '_power_loss_heatmap.png'
+    #f_dist = f + '_fault_distribution.png'
     
-    clear_sky_fig.write_image(f_cs, width=1000, height=500, scale=5)
-    fault_heatmap_fig.write_image(f_fault, width=1000, height=500, scale=5)
-    current_heatmap_fig.write_image(f_current, width=1000, height=500, scale=5)
-    power_heatmap_fig.write_image(f_power, width=1000, height=500, scale=5)
-    fault_distribution_fig.write_image(f_dist, width=1000, height=500, scale=5)
+    #clear_sky_fig.write_image(f_cs, width=1000, height=500, scale=5)
+    #fault_heatmap_fig.write_image(f_fault, width=1000, height=500, scale=5)
+    #current_heatmap_fig.write_image(f_current, width=1000, height=500, scale=5)
+    #power_heatmap_fig.write_image(f_power, width=1000, height=500, scale=5)
+    #fault_distribution_fig.write_image(f_dist, width=1000, height=500, scale=5)
     
     ### Create word report
-    Create_word_report(meta, f_cs, f_fault, f_current, f_power, f_dist, F0, F1, F2, F3, F4, F5, SS, SF)
+    #Create_word_report(meta, f_cs, f_fault, f_current, f_power, f_dist, F0, F1, F2, F3, F4, F5, SS, SF)
+    
     return clear_sky_fig, fault_heatmap_fig, current_heatmap_fig, power_heatmap_fig,voltage_compare_fig, fault_distribution_fig, F0, F1, F2, F3, F4, F5, SS, SF
 
 
