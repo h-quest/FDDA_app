@@ -1,0 +1,8 @@
+﻿Fault symbol;Fault type;Potential causes
+F0;Normal;
+F1;Cloudy;Weather influence
+F2;Low V, Low I;Connection fault, MPPT fault, Partial shading
+F3;Low V;Shading with BPD activation, Module fault (short-circuited BPD)
+F4;High V, Low I;Temperature effect due to shading, MPPT fault, Inverter shutdown
+F5;High V;Temperature effect due to shading, MPPT fault, Inverter shutdown
+F*;Other;Open-circuit fault, Soiling, Hot-spot, Potential-induced fault, Earth fault, Soldering, Discoloration, Cracks, Delamination,…
