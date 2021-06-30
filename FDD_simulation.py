@@ -591,7 +591,7 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
     )
 
     fig.update_yaxes(title_text=title_yaxis, title_font_size=12, secondary_y=False, row=1, col=1)
-    fig.update_yaxes(title_text=r'$\text{Voltage [V]}$', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
+    fig.update_yaxes(title_text='Voltage [V]', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
     fig.update_layout(template='ggplot2', paper_bgcolor='rgba(0, 0, 0, 0)')
     
     config = {
