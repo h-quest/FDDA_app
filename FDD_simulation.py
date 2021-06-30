@@ -225,7 +225,7 @@ def Plot_clear_sky(df_cs, single_diode_out):
     fig.update_layout(
         paper_bgcolor='rgba(0, 0, 0, 0)')
     
-    fig.update_yaxes(title_text=r'$\text{Power [W]}$', title_font_size=12)
+    fig.update_yaxes(title_text='Power [W]', title_font_size=12)
     
     #fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 800,'scale': 1}})
     
@@ -718,7 +718,7 @@ def Plot_Idiff_heatmap(merged):
             y=y,
             colorscale='RdYlGn_r',
             colorbar=dict(
-                title="Current loss",
+                title="<b>Current Loss</b>",
                 titleside="top",
                 ticks="outside")
     ))
