@@ -145,5 +145,6 @@ with figures:
         
       
         st.table(info)
+        
         st.image('Fault_classficiation_table.png')
 
