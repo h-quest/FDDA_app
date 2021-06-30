@@ -146,5 +146,5 @@ with figures:
       
         #st.table(info)
         
-        st.image('Fault_classficiation_table.png', width=800)
+        st.image('Fault_classficiation_table.png', width=1000)
 
