@@ -761,16 +761,16 @@ def Plot_fault_distribution(merged):
     f4 = faulty_hours[faulty_hours['Fault']==4]['relative_time'].values
 
     fig = go.Figure(data=[go.Histogram(x=f1, nbinsx=100, bingroup=1, 
-                                       name='Low V', marker_color='steelblue', opacity=0.8,
+                                       name='F2 - Low V', marker_color='steelblue', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01))])
     fig.add_trace(go.Histogram(x=f2, nbinsx=100, bingroup=1, 
-                                       name='Low V, low I', marker_color='rgb(57,86,143)', opacity=0.8,
+                                       name='F3 - Low V, low I', marker_color='rgb(57,86,143)', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01)))
     fig.add_trace(go.Histogram(x=f3, nbinsx=100, bingroup=1, 
-                                       name='High V, low I', marker_color='rgb(31,150,139)', opacity=0.8,
+                                       name='F4 - High V, low I', marker_color='rgb(31,150,139)', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01)))
     fig.add_trace(go.Histogram(x=f4, nbinsx=100, bingroup=1, 
-                                       name='High V', marker_color='teal', opacity=0.8,
+                                       name='F5 - High V', marker_color='teal', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01)))
 
     fig.update_xaxes(tickmode = 'array',
