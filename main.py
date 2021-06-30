@@ -136,7 +136,7 @@ with figures:
         labels = ['F2','F3', 'F4', 'F5']
         values = [F1, F2, F3, F4]
         fig_prop = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.4, sort = False)])
-        colors = ['grey', 'steelblue', 'rgb(57,86,143)', 'rgb(31,150,139)', 'teal']
+        colors = ['steelblue', 'rgb(57,86,143)', 'rgb(31,150,139)', 'teal']
         fig_prop.update_traces(marker=dict(colors=colors))
         
         k2.subheader('Fault type distribution')
