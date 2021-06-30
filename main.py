@@ -144,7 +144,7 @@ with figures:
         k2.plotly_chart(fig_prop,use_container_width=True)
         
       
-        st.table(info)
+        #st.table(info)
         
-        st.image('Fault_classficiation_table.png')
+        st.image('Fault_classficiation_table.png', width=5)
 
