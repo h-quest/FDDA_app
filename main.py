@@ -147,4 +147,6 @@ with figures:
         #st.table(info)
         
         st.image('Fault_classficiation_table.png', width=1000)
+          
+        st.image('Fault_table.pdf', width=1000)
 
