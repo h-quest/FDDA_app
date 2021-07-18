@@ -233,7 +233,7 @@ def Plot_clear_sky(df_cs, single_diode_out):
     
 ######################
 
-def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky'):
+def Get_merged_df(single_diode_out_cs, single_diode_out_sc, df_cs, df_sc, df_solcast, meta, method='clear-sky-kt'):
     
     if((method=='clear-sky') | (method=='clear-sky-kt')):
         single_diode_out = single_diode_out_cs
@@ -245,10 +245,15 @@ def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky'):
     df_merged = df.merge(single_diode_out, left_on=df.index, right_on=single_diode_out.index)
     df_merged.drop('key_0', axis=1, inplace=True)
     df_merged.set_index('Time', inplace=True)
-    
-    merged = df_merged.copy()
+    df_merged['Time'] = df_merged.index
+    daily_opacity = df_solcast.resample('H').mean()
+    merged = df_merged.merge(daily_opacity, left_on=[df_merged.index.date,df_merged.index.hour],
+                                right_on=[daily_opacity.index.date,daily_opacity.index.hour])
+    merged['cloudy'] = np.where(merged['CloudOpacity']>=40, 1, 0)
+    merged.drop(['key_0', 'key_1'], axis=1, inplace=True)
+    merged.set_index('Time', inplace=True)
 
-    
+    from suntime import Sun
 
     latitude=meta['Latitude'].values[0] 
     longitude=meta['Longitude'].values[0]
@@ -311,24 +316,47 @@ def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky'):
             mean = row['mean']
             var = row['var']
             if(0.6-mean>var):
-                return 1 # overcast
-            elif(-0.72+0.8*mean>=var):
-                return 0 # cloudless
+                return 0 # overcast
+            elif(-0.6+0.9*mean>=var):
+                return 2 # cloudless
             else:
-                return 2 # broken clouds
+                return 1 # broken clouds
 
-        def Weather_color(row):
+        test['weather'] = test.apply(Weather_class, axis=1)
+
+        merged['Time'] = merged.index
+        merged = merged.merge(test, left_on=merged.index.date, right_on=test.index).drop('key_0', axis=1)
+        merged = merged.set_index('Time')
+        merged = merged[~merged.index.duplicated(keep='first')]
+    
+    if(method=='clear-sky'):
+        
+        poa_sc = df_sc['poa_global']
+        merged = merged.merge(poa_sc, left_on=merged.index, right_on=poa_sc.index).rename(columns={'key_0':'Time'}).set_index('Time')
+        merged['kt'] = merged['poa_global']/merged['clearsky_poa']
+        merged['ktp'] = merged['Power']/merged['p_mp']
+        merged['kt'][merged['kt']>1] = 1
+        merged['ktp'][merged['ktp']>1] = 1
+
+        test = merged.copy()
+        test = test.dropna()
+        test = test.groupby(test.index.date).agg(list)[['kt', 'ktp']]
+        test['mean'] = test['kt'].apply(lambda x: np.mean(np.array(x)))
+        test['var'] = test['kt'].apply(lambda x: np.mean(np.abs(np.diff(x))))
+        test['mean_p'] = test['ktp'].apply(lambda x: np.mean(np.array(x)))
+        test['var_p'] = test['ktp'].apply(lambda x: np.mean(np.abs(np.diff(x))))
+
+        def Weather_class(row):
             mean = row['mean']
             var = row['var']
             if(0.6-mean>var):
-                return 'grey'
+                return 0 # overcast
             elif(-0.72+0.8*mean>=var):
-                return 'orange'
+                return 2 # cloudless
             else:
-                return 'steelblue'
+                return 1 # broken clouds
 
         test['weather'] = test.apply(Weather_class, axis=1)
-        test['color'] = test.apply(Weather_color, axis=1)
 
         merged['Time'] = merged.index
         merged = merged.merge(test, left_on=merged.index.date, right_on=test.index).drop('key_0', axis=1)
@@ -363,20 +391,20 @@ def Diagnose_Fault(row, low_factor=1, high_factor=1, v_std=None):
 
             if(v_mp_low <= voltage <= v_mp): ## --- Normal
                 return 0
-            elif((voltage < v_mp_low) & ((weather==0)|(weather==2))): 
+            elif((voltage < v_mp_low) & ((weather==0)|(weather==1))): 
                 if(current < i_mp_low):
-                    return 1 ## --- Low voltage and low current
+                    return 2 ## --- Low voltage and low current
                 else:
-                    return 2 ## -- Low voltage
+                    return 3 ## -- Low voltage
             elif(((voltage < v_mp_low) | (current < i_mp_low)) & ((weather==1))): ## --- Cloudy
-                return 5
-            elif((voltage > v_mp) & ((weather==0)|(weather==2))): 
+                return 1
+            elif((voltage > v_mp) & ((weather==0)|(weather==1))): 
                 if(current < i_mp_low):
-                    return 3 ## --- High voltage and low current
+                    return 4 ## --- High voltage and low current
                 else:
-                    return 4 ## --- High voltage
-            elif(((voltage > v_mp) | (current < i_mp_low)) & ((weather==1))): ## --- Cloudy 
-                return 5
+                    return 5 ## --- High voltage
+            elif(((voltage > v_mp) | (current < i_mp_low)) & ((weather==2))): ## --- Cloudy 
+                return 1
         else:
             if(voltage>0):
                 return np.nan
@@ -391,18 +419,18 @@ def Diagnose_Fault(row, low_factor=1, high_factor=1, v_std=None):
                 return 0
             elif((voltage < v_mp_low) & (cloudy==0)): 
                 if(current < i_mp_low):
-                    return 1 ## --- Low voltage and low current
+                    return 2 ## --- Low voltage and low current
                 else:
-                    return 2 ## -- Low voltage
+                    return 3 ## -- Low voltage
             elif(((voltage < v_mp_low) | (current < i_mp_low)) & (cloudy==1)): ## --- Cloudy
-                return 5
+                return 1
             elif((voltage > v_mp) & (cloudy==0)): ## --- Shading 2
                 if(current < i_mp_low):
-                    return 3 ## --- High voltage and low current
+                    return 4 ## --- High voltage and low current
                 else:
-                    return 4 ## --- High voltage
+                    return 5 ## --- High voltage
             elif(((voltage > v_mp) | (current < i_mp_low)) & (cloudy==1)): ## --- Cloudy 
-                return 5
+                return 1
         else:
             if(voltage>0):
                 return np.nan
@@ -428,22 +456,22 @@ def Plot_fault_heatmap(merged):
             #colorscale='Viridis',
             colorscale=[[0,'rgb(68,1,84)'],[0.15,'rgb(68,1,84)'],
               [0.15,'white'], [0.17,'white'],
-              [0.17,'steelblue'],[0.32,'steelblue'],
+              [0.17,'grey'],[0.32,'grey'],
               [0.32,'white'], [0.34,'white'],   
-              [0.34,'rgb(57,86,143)'],[0.49,'rgb(57,86,143)'],
+              [0.34,'steelblue'],[0.49,'steelblue'],
               [0.49,'white'], [0.51,'white'],
-              [0.51,'rgb(31,150,139)'],[0.66,'rgb(31,150,139)'],
+              [0.51,'rgb(57,86,143)'],[0.66,'rgb(57,86,143)'],
               [0.66,'white'], [0.68,'white'],
-              [0.68,'teal'], [0.83,'teal'],
+              [0.68,'rgb(31,150,139)'], [0.83,'rgb(31,150,139)'],
               [0.83,'white'], [0.85,'white'],
-              [0.85,'grey'], [1,'grey']], 
+              [0.85,'teal'], [1,'teal']], 
             colorbar=dict(
                 title="<b>Fault Type</b>",
                 titleside="top",
                 #tickvals=[0.1, 1, 2, 2.9],
                 tickvals=[0.4, 1.2, 2.1, 2.9, 3.8, 4.6],
-                ticktext=['Normal', 'Low V', 'Low V, low I', 'High V, low I', 
-                          'High V', 'Cloudy'], ticks='')
+                ticktext=['F0 - Normal', 'F1 - Cloudy', 'F2 - Low V, low I', 'F3 - Low V', 'F4 - High V, low I', 
+                          'F5 - High V'], ticks='')
                 #ticks="outside"),
                 #colorscale=[[0, "green"], [0.25, "green"], [0.25, "orange"], [0.5, "orange"], 
                 #            [0.5, 'tomato'], [0.75, 'tomato'], [0.75, 'darkgrey'],  [1, "darkgrey"]]
@@ -458,14 +486,18 @@ def Plot_fault_heatmap(merged):
         width=895, 
         height=530,
         paper_bgcolor='rgba(0, 0, 0, 0)',
-        font=dict(size=15))
+        font=dict(size=15),
+        template='ggplot2')
     
     fig.update_xaxes(tickmode = 'array',
-                 tickvals = [dt.time(4,0),dt.time(8,0),dt.time(12,0),dt.time(16,0),dt.time(20,0)])
+                     tickvals = [dt.time(4,0),dt.time(8,0),dt.time(12,0),dt.time(16,0),dt.time(20,0)],
+                     mirror=True)
+    fig.update_yaxes(mirror=True)
 
-    #fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 750,'scale': 1}})
+    fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 750,'scale': 1}})
     
     return fig
+
 
 ######################
 
@@ -504,14 +536,14 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
     
     if(loss_variable=='Current'):
         fig.add_trace(go.Scatter(mode="lines", x=x, y=s5, name='I-dc', line_color='steelblue'), row=1, col=1)
-        fig.add_trace(go.Scatter(mode="lines", x=x, y=s6, name='I-sd', line_color='orange'), row=1, col=1)
-        fig.add_trace(go.Scatter(mode="lines", x=x, y=s7, name='I-sd (low)', line_color='orange',line=dict(width=0.3), fill='tonexty'), row=1, col=1)
+        fig.add_trace(go.Scatter(mode="lines", x=x, y=s6, name='I-sd', line_color='orange', line=dict(width=0.3), showlegend=False), row=1, col=1)
+        fig.add_trace(go.Scatter(mode="lines", x=x, y=s7, name='I-sd', line_color='orange',line=dict(width=0.3), fill='tonexty'), row=1, col=1)
     elif(loss_variable=='Power'):
         fig.add_trace(go.Scatter(mode="lines", x=x, y=s0, name='P-dc', line_color='steelblue'), row=1, col=1)
         fig.add_trace(go.Scatter(mode="lines", x=x, y=s3, name='P-sd', line_color='orange'), row=1, col=1)
     fig.add_trace(go.Scatter(mode="lines", x=x, y=s1, name='V-dc', line_color='darkslategrey'),secondary_y=True, row=1, col=1)
-    fig.add_trace(go.Scatter(mode="lines", x=x, y=s2, name='V-sd', line_color='grey', line=dict(width=0.3)),secondary_y=True, row=1, col=1)
-    fig.add_trace(go.Scatter(mode="lines", x=x, y=s4, name='V-sd (low)', line_color='grey',line=dict(width=0.3), fill='tonexty'),secondary_y=True, row=1, col=1)
+    fig.add_trace(go.Scatter(mode="lines", x=x, y=s2, name='V-sd', line_color='grey', line=dict(width=0.3), showlegend=False),secondary_y=True, row=1, col=1)
+    fig.add_trace(go.Scatter(mode="lines", x=x, y=s4, name='V-sd', line_color='grey',line=dict(width=0.3), fill='tonexty'),secondary_y=True, row=1, col=1)
 
     y = ['Fault Type ']
     dates = merged.index
@@ -523,15 +555,15 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
     fig.add_trace(go.Heatmap(z=z,x=dates,y=y,
               colorscale=[[0,'rgb(68,1,84)'],[0.15,'rgb(68,1,84)'],
               [0.15,'white'], [0.17,'white'],
-              [0.17,'steelblue'],[0.32,'steelblue'],
+              [0.17,'grey'],[0.32,'grey'],
               [0.32,'white'], [0.34,'white'],   
-              [0.34,'rgb(57,86,143)'],[0.49,'rgb(57,86,143)'],
+              [0.34,'steelblue'],[0.49,'steelblue'],
               [0.49,'white'], [0.51,'white'],
-              [0.51,'rgb(31,150,139)'],[0.66,'rgb(31,150,139)'],
+              [0.51,'rgb(57,86,143)'],[0.66,'rgb(57,86,143)'],
               [0.66,'white'], [0.68,'white'],
-              [0.68,'teal'], [0.83,'teal'],
+              [0.68,'rgb(31,150,139)'], [0.83,'rgb(31,150,139)'],
               [0.83,'white'], [0.85,'white'],
-              [0.85,'grey'], [1,'grey']],                                       
+              [0.85,'teal'], [1,'teal']],                                  
                 colorbar=dict(
                 title="<b>Fault Type</b>",
                 xanchor='left',
@@ -539,8 +571,8 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
                 len=0.5, 
                 titleside="top",
                 tickvals=[0.4, 1.2, 2.1, 2.9, 3.8, 4.6],
-                ticktext=['Normal', 'Low V', 'Low V, low I', 'High V, low I', 
-                          'High V', 'Cloudy'], ticks='')), row=2, col=1)
+                ticktext=['F0 - Normal', 'F1 - Cloudy', 'F2 - Low V, low I', 'F3 - Low V', 'F4 - High V, low I', 
+                          'F5 - High V'], ticks='')), row=2, col=1)
 
     dates = merged.index
     list1_ = []
@@ -549,12 +581,12 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
         y1 = ['Current loss']
         list1_.append(np.nan_to_num(merged['I_diff'].values, copy=True, nan=0.0, posinf=None, neginf=None))
         title_ = "<b>Current loss</b>"
-        title_yaxis = 'Current [A]'
+        title_yaxis = r'$\text{Current [A]}$'
     elif(loss_variable=='Power'):
         y1 = ['Power loss ']
         list1_.append(np.nan_to_num(merged['P_diff'].values, copy=True, nan=0.0, posinf=None, neginf=None))
         title_ = "<b>Power loss</b>"
-        title_yaxis = 'Power [W]'
+        title_yaxis = r'$\text{Power [W]}$'
     
     z1 = np.array(list1_)
     
@@ -577,21 +609,20 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
     ))
     
     fig.update_xaxes(
-        col=1, row=1,
-        rangeslider_visible=False,
+        mirror=True,
+        rangeslider_visible=True,
         rangeselector=dict(
             buttons=list([
-                #dict(count=6, label="6m", step="month", stepmode="backward"),
-                #dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
                 dict(count=7, label="7d", step="day", stepmode="backward"),
-                dict(count=2, label="2d", step="day", stepmode="backward"),
                 dict(step="all")
             ])
         )
     )
-
     fig.update_yaxes(title_text=title_yaxis, title_font_size=12, secondary_y=False, row=1, col=1)
-    fig.update_yaxes(title_text='Voltage [V]', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
+    fig.update_yaxes(title_text=r'$\text{Voltage [V]}$', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
+    fig.update_yaxes(mirror=True)
     fig.update_layout(template='ggplot2', paper_bgcolor='rgba(0, 0, 0, 0)')
     
     config = {
@@ -599,12 +630,12 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
         'format': 'svg', # one of png, svg, jpeg, webp
         'filename': 'custom_image',
         'height': 500,
-        'width': 1000,
+        'width': 900,
         'scale': 1
       }
     }
     
-    #fig.show(config=config)
+    fig.show(config=config)
     return fig
 
 ######################
@@ -631,15 +662,13 @@ def Power_diff_full(row):
     if(np.isnan(row['Fault'])):
         return np.nan
     else:
-        if (row['p_mp'] != 0):
-            power=row['Power']
-            p_mp=row['p_mp']
-            diff = (p_mp-power)/p_mp
-            if(diff<0):
-                return 0
-            else:
-                return diff
-        else: return np.nan
+        power=row['Power']
+        p_mp=row['p_mp']
+        diff = (p_mp-power)/p_mp
+        if(diff<0):
+            return 0
+        else:
+            return diff
         
 ######################
 
@@ -648,15 +677,13 @@ def Current_diff_full(row):
     if(np.isnan(row['Fault'])):
         return np.nan
     else:
-        if (row['i_mp'] != 0):
-            current=row['Current']
-            i_mp=row['i_mp']
-            diff = (i_mp-current)/i_mp
-            if(diff<0):
-                return 0
-            else:
-                return diff
-        else: return np.nan
+        current=row['Current']
+        i_mp=row['i_mp']
+        diff = (i_mp-current)/i_mp
+        if(diff<0):
+            return 0
+        else:
+            return diff
 
 ######################        
         
@@ -668,7 +695,9 @@ def Plot_Pdiff_heatmap(merged):
     y = df_heatmap.index
     z = df_heatmap['P_diff'].values
     df_heatmap['length_hour'] = df_heatmap['hour'].apply(lambda x: len(x))
-    dates = df_heatmap['hour'][df_heatmap['length_hour']==df_heatmap['length_hour'].max()][0]
+    maxval = df_heatmap.groupby('length_hour').count()
+    maxval = maxval[maxval['Power']==maxval['Power'].max()].index[0]
+    dates = df_heatmap['hour'][df_heatmap['length_hour']==maxval][0]
 
     fig = go.Figure(data=go.Heatmap(
             z=z,
@@ -688,12 +717,13 @@ def Plot_Pdiff_heatmap(merged):
         width=895, 
         height=530,
         paper_bgcolor='rgba(0, 0, 0, 0)',
-        font=dict(size=15))
+        font=dict(size=15),
+        template='ggplot2')
     
     fig.update_xaxes(tickmode = 'array',
                  tickvals = [dt.time(4,0),dt.time(8,0),dt.time(12,0),dt.time(16,0),dt.time(20,0)])
 
-    #fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 750,'scale': 1}})
+    fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 750,'scale': 1}})
     
     return fig
 
@@ -718,7 +748,7 @@ def Plot_Idiff_heatmap(merged):
             y=y,
             colorscale='RdYlGn_r',
             colorbar=dict(
-                title="<b>Current Loss</b>",
+                title="<b>Current loss</b>",
                 titleside="top",
                 ticks="outside")
     ))
@@ -730,12 +760,13 @@ def Plot_Idiff_heatmap(merged):
         width=895, 
         height=530,
         paper_bgcolor='rgba(0, 0, 0, 0)',
-        font=dict(size=15))
+        font=dict(size=15),
+        template='ggplot2')
     
     fig.update_xaxes(tickmode = 'array',
                  tickvals = [dt.time(4,0),dt.time(8,0),dt.time(12,0),dt.time(16,0),dt.time(20,0)])
 
-    #fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 750,'scale': 1}})
+    fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 750,'scale': 1}})
     
     return fig
 
@@ -753,23 +784,23 @@ def relative_time(row):
 def Plot_fault_distribution(merged):
 
     merged['relative_time'] = merged.apply(relative_time, axis=1)
-    faulty_hours = merged[(merged['Fault'].isin([1,2,3,4]))]
+    faulty_hours = merged[(merged['Fault'].isin([2,3,4,5]))]
     faulty_hours = faulty_hours.sort_values(by='relative_time')
-    f1 = faulty_hours[faulty_hours['Fault']==1]['relative_time'].values
     f2 = faulty_hours[faulty_hours['Fault']==2]['relative_time'].values
     f3 = faulty_hours[faulty_hours['Fault']==3]['relative_time'].values
     f4 = faulty_hours[faulty_hours['Fault']==4]['relative_time'].values
+    f5 = faulty_hours[faulty_hours['Fault']==5]['relative_time'].values
 
-    fig = go.Figure(data=[go.Histogram(x=f1, nbinsx=100, bingroup=1, 
-                                       name='F2 - Low V', marker_color='steelblue', opacity=0.8,
+    fig = go.Figure(data=[go.Histogram(x=f2, nbinsx=100, bingroup=1, 
+                                       name='F2 - Low V, low I', marker_color='rgb(57,86,143)', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01))])
-    fig.add_trace(go.Histogram(x=f2, nbinsx=100, bingroup=1, 
-                                       name='F3 - Low V, low I', marker_color='rgb(57,86,143)', opacity=0.8,
-                                       xbins=dict(start=0, end=1, size=0.01)))
     fig.add_trace(go.Histogram(x=f3, nbinsx=100, bingroup=1, 
-                                       name='F4 - High V, low I', marker_color='rgb(31,150,139)', opacity=0.8,
+                                       name='F3 - Low V', marker_color='steelblue', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01)))
     fig.add_trace(go.Histogram(x=f4, nbinsx=100, bingroup=1, 
+                                       name='F4 - High V, low I', marker_color='rgb(31,150,139)', opacity=0.8,
+                                       xbins=dict(start=0, end=1, size=0.01)))
+    fig.add_trace(go.Histogram(x=f5, nbinsx=100, bingroup=1, 
                                        name='F5 - High V', marker_color='teal', opacity=0.8,
                                        xbins=dict(start=0, end=1, size=0.01)))
 
@@ -780,18 +811,18 @@ def Plot_fault_distribution(merged):
     fig.update_layout(
         xaxis_range=[0, 1],
         barmode='stack',
-        xaxis_title_text='Relative time of day', # xaxis label
-        yaxis_title_text='Fault count', # yaxis label
+        xaxis_title_text=r'$\text{Relative time of day}$', # xaxis label
+        yaxis_title_text=r'$\text{Fault count}$', # yaxis label
         bargap=0, # gap between bars of adjacent location coordinates
-        template='ggplot2',
+        template='simple_white',
         width=900,
-        paper_bgcolor='rgba(0, 0, 0, 0)'
-    )
+        paper_bgcolor='rgba(0, 0, 0, 0)')
 
-    #fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 700,'scale': 1}})
+    fig.show(config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 700,'scale': 1}})
     
-    return fig 
+    return fig  
 
+######################
 
 def FFDA_run_all(data_file, metadata_file, year, freq='30min'):
 
@@ -899,6 +930,7 @@ def FFDA_run_all(data_file, metadata_file, year, freq='30min'):
     
     return clear_sky_fig, fault_heatmap_fig, current_heatmap_fig, power_heatmap_fig,voltage_compare_fig, fault_distribution_fig, F0, F1, F2, F3, F4, F5, SS, SF
 
+######################
 
 def Create_word_report(meta, f_cs, f_fault, f_current, f_power, f_dist,F0, F1, F2, F3, F4, F5, SS, SF):
     
