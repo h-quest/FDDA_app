@@ -246,12 +246,6 @@ def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky-kt'):
     df_merged.drop('key_0', axis=1, inplace=True)
     df_merged.set_index('Time', inplace=True)
     df_merged['Time'] = df_merged.index
-    daily_opacity = df_solcast.resample('H').mean()
-    merged = df_merged.merge(daily_opacity, left_on=[df_merged.index.date,df_merged.index.hour],
-                                right_on=[daily_opacity.index.date,daily_opacity.index.hour])
-    merged['cloudy'] = np.where(merged['CloudOpacity']>=40, 1, 0)
-    merged.drop(['key_0', 'key_1'], axis=1, inplace=True)
-    merged.set_index('Time', inplace=True)
 
     from suntime import Sun
 
