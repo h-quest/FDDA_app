@@ -233,7 +233,7 @@ def Plot_clear_sky(df_cs, single_diode_out):
     
 ######################
 
-def Get_merged_df(single_diode_out_cs, single_diode_out_sc, df_cs, df_sc, df_solcast, meta, method='clear-sky-kt'):
+def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky-kt'):
     
     if((method=='clear-sky') | (method=='clear-sky-kt')):
         single_diode_out = single_diode_out_cs
