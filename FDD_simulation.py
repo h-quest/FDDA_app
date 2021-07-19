@@ -246,6 +246,7 @@ def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky-kt'):
     df_merged.drop('key_0', axis=1, inplace=True)
     df_merged.set_index('Time', inplace=True)
     df_merged['Time'] = df_merged.index
+    merged = df_merged.copy()
 
     from suntime import Sun
 
@@ -261,7 +262,7 @@ def Get_merged_df(single_diode_out_cs, df_cs, meta, method='clear-sky-kt'):
 
     merged['sunrise'] = merged.apply(lambda x: get_sunrise(x,sun), axis=1)
     merged['sunset'] = merged.apply(lambda x: get_sunset(x,sun), axis=1)
-    merged['hour'] = merged.reset_index().apply(lambda x: x['Time'].time(), axis = 1).values
+    merged['hour'] = merged.apply(lambda x: x['Time'].time(), axis = 1).values
     
     v_mp_std = merged.copy()
     v_mp_std = v_mp_std.groupby(v_mp_std.index.date).agg(np.std, ddof=0)['v_mp']
@@ -385,19 +386,19 @@ def Diagnose_Fault(row, low_factor=1, high_factor=1, v_std=None):
 
             if(v_mp_low <= voltage <= v_mp): ## --- Normal
                 return 0
-            elif((voltage < v_mp_low) & ((weather==0)|(weather==1))): 
+            elif((voltage < v_mp_low) & ((weather==1)|(weather==2))): 
                 if(current < i_mp_low):
                     return 2 ## --- Low voltage and low current
                 else:
                     return 3 ## -- Low voltage
-            elif(((voltage < v_mp_low) | (current < i_mp_low)) & ((weather==1))): ## --- Cloudy
+            elif(((voltage < v_mp_low) | (current < i_mp_low)) & ((weather==0))): ## --- Cloudy
                 return 1
-            elif((voltage > v_mp) & ((weather==0)|(weather==1))): 
+            elif((voltage > v_mp) & ((weather==1)|(weather==2))): 
                 if(current < i_mp_low):
                     return 4 ## --- High voltage and low current
                 else:
                     return 5 ## --- High voltage
-            elif(((voltage > v_mp) | (current < i_mp_low)) & ((weather==2))): ## --- Cloudy 
+            elif(((voltage > v_mp) | (current < i_mp_low)) & ((weather==0))): ## --- Cloudy 
                 return 1
         else:
             if(voltage>0):
