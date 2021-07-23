@@ -116,7 +116,7 @@ with figures:
         st.subheader('FDDA threshold visualisation')
         st.markdown('Full visualisation of FDDA outputs - Simulated and actual DC outputs, fault occurence colormap and relative current loss heatmap.')
         st.plotly_chart(voltage_compare_fig,use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', # one of png, svg, jpeg, webp'filename': 'custom_image',
-        'height': 500,'width': 900,'scale': 1}}))
+        'height': 500,'width': 900,'scale': 1}})
         
         
         
