@@ -576,12 +576,12 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
         y1 = ['Current loss']
         list1_.append(np.nan_to_num(merged['I_diff'].values, copy=True, nan=0.0, posinf=None, neginf=None))
         title_ = "<b>Current loss</b>"
-        title_yaxis = r'$\text{Current [A]}$'
+        title_yaxis = 'Current [A]'
     elif(loss_variable=='Power'):
         y1 = ['Power loss ']
         list1_.append(np.nan_to_num(merged['P_diff'].values, copy=True, nan=0.0, posinf=None, neginf=None))
         title_ = "<b>Power loss</b>"
-        title_yaxis = r'$\text{Power [W]}$'
+        title_yaxis = 'Power [W]'
     
     z1 = np.array(list1_)
     
@@ -615,7 +615,7 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
     )
     
     fig.update_yaxes(title_text=title_yaxis, title_font_size=12, secondary_y=False, row=1, col=1)
-    fig.update_yaxes(title_text=r'$\text{Voltage [V]}$', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
+    fig.update_yaxes(title_text='Voltage [V]', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
     fig.update_yaxes(mirror=True)
     fig.update_layout(template='ggplot2', paper_bgcolor='rgba(0, 0, 0, 0)')
     
