@@ -110,30 +110,32 @@ with figures:
     if (f_cs is not None):
         st.subheader('Clear-sky power simulation')
         st.markdown('Clear-sky DC power output simulation based on single-diode model compared to the actual DC power output.')
-        st.plotly_chart(f_cs, use_container_width=True)
+        st.plotly_chart(f_cs, use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', # one of png, svg, jpeg, webp'filename': 'custom_image',
+        'height': 500,'width': 900,'scale': 1}})
         
         st.subheader('FDDA threshold visualisation')
         st.markdown('Full visualisation of FDDA outputs - Simulated and actual DC outputs, fault occurence colormap and relative current loss heatmap.')
-        st.plotly_chart(voltage_compare_fig,use_container_width=True)
+        st.plotly_chart(voltage_compare_fig,use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', # one of png, svg, jpeg, webp'filename': 'custom_image',
+        'height': 500,'width': 900,'scale': 1}}))
         
         
         
         p1, p2 = st.beta_columns(2)
         p1.subheader('Shading fault heatmap')
         p1.markdown('Shading faults colormap showing the temporal distribution of faults. ')
-        p1.plotly_chart(f_fault,use_container_width=True)
+        p1.plotly_chart(f_fault,use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 700,'scale': 1}})
         p2.subheader('Current loss heat map')
         p2.markdown('Relative current loss heatmap, computed by comparing actual and clear-sky outputs.')
-        p2.plotly_chart(f_current,use_container_width=True)
+        p2.plotly_chart(f_current,use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 700,'scale': 1}})
         
         
         k1, k2 = st.beta_columns(2)
         k1.subheader('Shading fault occurence histogram')
         k1.markdown('Histogram of fault occurence as a function of the relative time of day. The values of the x-axis represent normalised hours in a day, given the differences in day length during the year.')
-        k1.plotly_chart(f_dist,use_container_width=True)
+        k1.plotly_chart(f_dist,use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 700,'scale': 1}})
         
         
-        labels = ['F2','F3', 'F4', 'F5']
+        labels = ['F2 - Low V, low I','F3 - Low V', 'F4 - High V, low I', 'F5 - High V']
         values = [F1, F2, F3, F4]
         fig_prop = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.4, sort = False)])
         colors = ['steelblue', 'rgb(57,86,143)', 'rgb(31,150,139)', 'teal']
@@ -141,7 +143,7 @@ with figures:
         
         k2.subheader('Fault type distribution')
         k2.markdown('Relative occurence of fault types in the system. The fault classification and probable causes is shown in the table below.')
-        k2.plotly_chart(fig_prop,use_container_width=True)
+        k2.plotly_chart(fig_prop,use_container_width=True, config={'toImageButtonOptions': {'format': 'svg', 'filename': 'saved_image','width': 700,'scale': 1}})
         
       
         #st.table(info)
