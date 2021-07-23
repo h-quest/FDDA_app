@@ -603,9 +603,7 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
         x=1
     ))
     
-    fig.update_xaxes(
-        mirror=True,
-        rangeslider_visible=True,
+    fig.update_xaxes(rangeslider_visible=False,
         rangeselector=dict(
             buttons=list([
                 dict(count=6, label="6m", step="month", stepmode="backward"),
@@ -613,8 +611,9 @@ def Plot_voltage_compare(merged, low_factor=1, high_factor=1, v_std=None, loss_v
                 dict(count=7, label="7d", step="day", stepmode="backward"),
                 dict(step="all")
             ])
-        )
+        ), row=1, col=1
     )
+    
     fig.update_yaxes(title_text=title_yaxis, title_font_size=12, secondary_y=False, row=1, col=1)
     fig.update_yaxes(title_text=r'$\text{Voltage [V]}$', title_font_size=12, secondary_y=True,showgrid=False, row=1, col=1)
     fig.update_yaxes(mirror=True)
